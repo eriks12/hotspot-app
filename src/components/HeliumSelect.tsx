@@ -1,8 +1,15 @@
 /* eslint-disable react/jsx-props-no-spreading */
-import { ScrollView } from 'react-native-gesture-handler'
+import { FlatList } from 'react-native-gesture-handler'
 import { BoxProps } from '@shopify/restyle'
-import React, { memo, useCallback, useMemo } from 'react'
-import { StyleProp, ViewStyle } from 'react-native'
+import React, {
+  memo,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+  useState,
+} from 'react'
+import { LayoutChangeEvent, StyleProp, ViewStyle } from 'react-native'
 import LinearGradient from 'react-native-linear-gradient'
 import { Colors, Theme } from '../theme/theme'
 import Box from './Box'
@@ -20,6 +27,7 @@ type Props = BoxProps<Theme> & {
   variant?: HeliumSelectVariant
   showGradient?: boolean
   backgroundColor?: Colors
+  contentContainerStyle?: StyleProp<ViewStyle>
 }
 
 const HeliumSelect = ({
@@ -28,10 +36,44 @@ const HeliumSelect = ({
   onValueChanged,
   variant = 'bubble',
   showGradient = true,
-  backgroundColor,
+  backgroundColor = 'white',
+  contentContainerStyle,
   ...boxProps
 }: Props) => {
   const colors = useColors()
+  const listRef = useRef<FlatList<HeliumSelectItemType>>(null)
+  const [sizes, setSizes] = useState({} as Record<string | number, number>)
+
+  const color = useMemo(() => {
+    return colors[backgroundColor] as string
+  }, [backgroundColor, colors])
+
+  useEffect(() => {
+    if (!selectedValue) return
+
+    const index = data.findIndex((d) => d.value === selectedValue)
+    if (index === -1) return
+
+    const offset = [...Array(index)].reduce((total, _, i) => {
+      const item = data[i]
+      return total + sizes[item.value] || 0
+    }, 0)
+
+    listRef.current?.scrollToOffset({
+      offset,
+      animated: true,
+    })
+  }, [data, selectedValue, sizes])
+
+  const handleLayout = useCallback(
+    (index: number) => (event: LayoutChangeEvent) => {
+      const item = data[index]
+      const { width } = event.nativeEvent.layout
+      setSizes((s) => ({ ...s, [item.value]: width }))
+    },
+    [data],
+  )
+
   const handleItemSelected = useCallback(
     (value: string | number, index: number) => async () => {
       onValueChanged(value, index)
@@ -49,12 +91,9 @@ const HeliumSelect = ({
       } as StyleProp<ViewStyle>,
       start: { x: 0, y: 0 },
       end: { x: 1, y: 0 },
-      colors: [
-        hexToRGB(colors[backgroundColor || 'white'], 1),
-        hexToRGB(colors[backgroundColor || 'white'], 0),
-      ],
+      colors: [hexToRGB(color, 1), hexToRGB(color, 0)],
     }),
-    [backgroundColor, colors],
+    [color],
   )
 
   const rightGradientProps = useMemo(
@@ -67,36 +106,48 @@ const HeliumSelect = ({
       } as StyleProp<ViewStyle>,
       start: { x: 0, y: 0 },
       end: { x: 1, y: 0 },
-      colors: [
-        hexToRGB(colors[backgroundColor || 'white'], 0),
-        hexToRGB(colors[backgroundColor || 'white'], 1),
-      ],
+      colors: [hexToRGB(color, 0), hexToRGB(color, 1)],
     }),
-    [backgroundColor, colors],
+    [color],
+  )
+
+  type ListItem = { item: HeliumSelectItemType; index: number }
+  const renderItem = useCallback(
+    ({ item, index }: ListItem) => {
+      return (
+        <HeliumSelectItem
+          handleLayout={handleLayout(index)}
+          key={item.value}
+          variant={variant}
+          item={item}
+          backgroundColor={backgroundColor}
+          selected={item.value === selectedValue}
+          onPress={handleItemSelected(item.value, index)}
+        />
+      )
+    },
+    [backgroundColor, handleItemSelected, handleLayout, selectedValue, variant],
+  )
+
+  const keyExtractor = useCallback(
+    (item: HeliumSelectItemType) => `${item.value}`,
+    [],
   )
 
   return (
-    <Box width="100%">
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <Box
-          {...boxProps}
-          flexDirection="row"
-          flex={1}
-          height={33}
-          backgroundColor={backgroundColor}
-        >
-          {data.map((item, index) => (
-            <HeliumSelectItem
-              key={item.value}
-              variant={variant}
-              item={item}
-              backgroundColor={backgroundColor}
-              selected={item.value === selectedValue}
-              onPress={handleItemSelected(item.value, index)}
-            />
-          ))}
-        </Box>
-      </ScrollView>
+    <Box width="100%" flexDirection="row" flex={1} height={33} {...boxProps}>
+      <FlatList
+        contentContainerStyle={contentContainerStyle}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore This warning is a bug with react-native-gesture-handle
+        ref={listRef}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        decelerationRate="fast"
+        data={data}
+      />
       {showGradient && (
         <>
           <LinearGradient {...leftGradientProps} />

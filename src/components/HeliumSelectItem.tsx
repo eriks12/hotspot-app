@@ -1,4 +1,5 @@
 import React, { memo, useMemo } from 'react'
+import { LayoutChangeEvent } from 'react-native'
 import { SvgProps } from 'react-native-svg'
 import { Colors } from '../theme/theme'
 import Text from './Text'
@@ -18,6 +19,7 @@ type Props = {
   onPress: () => void
   variant: HeliumSelectVariant
   backgroundColor?: Colors
+  handleLayout: (event: LayoutChangeEvent) => void
 }
 
 const HeliumSelectItem = ({
@@ -26,6 +28,7 @@ const HeliumSelectItem = ({
   onPress,
   variant,
   backgroundColor = 'white',
+  handleLayout,
 }: Props) => {
   const textColor = useMemo(() => {
     if (variant === 'flat') {
@@ -55,6 +58,7 @@ const HeliumSelectItem = ({
       minWidth={80}
       height="100%"
       flexDirection="row"
+      onLayout={handleLayout}
       alignItems="center"
       borderRadius="round"
       onPress={onPress}
