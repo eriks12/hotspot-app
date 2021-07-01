@@ -3,7 +3,6 @@ import React, {
   forwardRef,
   useImperativeHandle,
   Ref,
-  useCallback,
   memo,
   useMemo,
 } from 'react'
@@ -70,10 +69,6 @@ const ActivityCard = forwardRef((props: Props, ref: Ref<BottomSheet>) => {
     return data
   }, [filter, pendingTxns, txns])
 
-  const header = useCallback(() => <ActivityCardHeader filter={filter} />, [
-    filter,
-  ])
-
   const getSnapPoints = useMemo(() => [dragMin, dragMid, dragMax], [
     dragMax,
     dragMid,
@@ -82,7 +77,7 @@ const ActivityCard = forwardRef((props: Props, ref: Ref<BottomSheet>) => {
 
   return (
     <BottomSheet
-      handleComponent={header}
+      handleComponent={null}
       snapPoints={getSnapPoints}
       index={1}
       animateOnMount={false}
@@ -90,11 +85,14 @@ const ActivityCard = forwardRef((props: Props, ref: Ref<BottomSheet>) => {
       onChange={onChange}
       animatedIndex={animatedIndex}
     >
-      {showSkeleton ? (
-        <ActivityListSkeletonView />
-      ) : (
-        <ActivityCardListView data={getData} hasNoResults={hasNoResults} />
-      )}
+      <>
+        <ActivityCardHeader filter={filter} />
+        {showSkeleton ? (
+          <ActivityListSkeletonView />
+        ) : (
+          <ActivityCardListView data={getData} hasNoResults={hasNoResults} />
+        )}
+      </>
     </BottomSheet>
   )
 })

@@ -49,11 +49,10 @@ const ActivityCardHeader = ({ filter }: Props) => {
   ])
 
   return (
-    <Box paddingVertical="m" paddingHorizontal="xs">
+    <Box paddingHorizontal="xs" height={72} paddingVertical="lm">
       <HeliumSelect
         contentContainerStyle={contentContainerStyle}
         showGradient={false}
-        marginTop="m"
         data={data}
         selectedValue={filter}
         onValueChanged={onFilterChanged}
