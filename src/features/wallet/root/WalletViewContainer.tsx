@@ -1,11 +1,8 @@
 import React, { memo, useCallback, useMemo, useRef, useState } from 'react'
-import { useTranslation } from 'react-i18next'
 import { useNavigation } from '@react-navigation/native'
 import BottomSheet from '@gorhom/bottom-sheet'
-import Qr from '@assets/images/qr.svg'
 import { AnyTransaction, PendingTransaction } from '@helium/http'
 import Box from '../../../components/Box'
-import Text from '../../../components/Text'
 import BalanceCard from './BalanceCard/BalanceCard'
 import {
   WalletAnimationPoints,
@@ -13,7 +10,6 @@ import {
   withWalletLayout,
 } from './walletLayout'
 import useHaptic from '../../../utils/useHaptic'
-import TouchableOpacityBox from '../../../components/TouchableOpacityBox'
 import WalletIntroCarousel from './WalletIntroCarousel'
 import { Loading } from '../../../store/activity/activitySlice'
 import { ActivityViewState, FilterType } from './walletTypes'
@@ -43,7 +39,6 @@ const WalletViewContainer = ({
   showSkeleton,
   activityViewState,
 }: Props) => {
-  const { t } = useTranslation()
   const navigation = useNavigation<RootNavigationProp>()
   const { triggerNavHaptic } = useHaptic()
 
@@ -85,26 +80,6 @@ const WalletViewContainer = ({
 
   return (
     <Box flex={1} style={containerStyle}>
-      <Box
-        flexDirection="row"
-        justifyContent="space-between"
-        alignItems="center"
-        paddingHorizontal="l"
-        backgroundColor="primaryBackground"
-        zIndex={1}
-        height={layout.headerHeight}
-      >
-        <Text variant="h1" fontSize={22} maxFontSizeMultiplier={1.2}>
-          {t('wallet.title')}
-        </Text>
-
-        <Box flexDirection="row" justifyContent="flex-end">
-          <TouchableOpacityBox onPress={navScan} padding="s">
-            <Qr width={22} height={22} color="white" />
-          </TouchableOpacityBox>
-        </Box>
-      </Box>
-
       {(activityViewState === 'activity' ||
         activityViewState === 'undetermined') && (
         <WalletView
@@ -120,6 +95,7 @@ const WalletViewContainer = ({
           onReceivePress={toggleShowReceive}
           onSendPress={handleSendPress}
           activityCardRef={activityCardRef}
+          handleScanPressed={navScan}
         />
       )}
       {activityViewState === 'no_activity' && (
@@ -135,7 +111,6 @@ const WalletViewContainer = ({
             ref={balanceSheetRef}
           >
             <BalanceCard
-              layout={layout}
               onReceivePress={toggleShowReceive}
               onSendPress={handleSendPress}
             />

@@ -9,14 +9,12 @@ import React, {
 import BottomSheet from '@gorhom/bottom-sheet'
 import Animated from 'react-native-reanimated'
 import { AnyTransaction, PendingTransaction } from '@helium/http'
-import { WalletAnimationPoints } from '../walletLayout'
 import ActivityCardHeader from './ActivityCardHeader'
 import { FilterType } from '../walletTypes'
 import ActivityCardListView from './ActivityCardListView'
 import ActivityListSkeletonView from './ActivityListSkeletonView'
 
 type Props = {
-  animationPoints: WalletAnimationPoints
   animatedIndex?: Animated.SharedValue<number>
   onChange?: (index: number) => void
   txns: AnyTransaction[]
@@ -24,11 +22,11 @@ type Props = {
   filter: FilterType
   hasNoResults: boolean
   showSkeleton: boolean
+  snapPoints: (string | number)[]
 }
 
 const ActivityCard = forwardRef((props: Props, ref: Ref<BottomSheet>) => {
   const {
-    animationPoints,
     animatedIndex,
     onChange,
     txns,
@@ -36,8 +34,8 @@ const ActivityCard = forwardRef((props: Props, ref: Ref<BottomSheet>) => {
     filter,
     hasNoResults,
     showSkeleton,
+    snapPoints,
   } = props
-  const { dragMax, dragMid, dragMin } = animationPoints
   const sheet = useRef<BottomSheet>(null)
 
   // TODO is there an easier way to copy/forward these methods?
@@ -69,16 +67,10 @@ const ActivityCard = forwardRef((props: Props, ref: Ref<BottomSheet>) => {
     return data
   }, [filter, pendingTxns, txns])
 
-  const getSnapPoints = useMemo(() => [dragMin, dragMid, dragMax], [
-    dragMax,
-    dragMid,
-    dragMin,
-  ])
-
   return (
     <BottomSheet
       handleComponent={null}
-      snapPoints={getSnapPoints}
+      snapPoints={snapPoints}
       index={1}
       animateOnMount={false}
       ref={sheet}

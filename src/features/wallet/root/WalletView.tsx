@@ -1,4 +1,4 @@
-import React, { memo, useState, useEffect } from 'react'
+import React, { memo, useState, useEffect, useCallback, useMemo } from 'react'
 import Animated, {
   Extrapolate,
   interpolate,
@@ -7,27 +7,27 @@ import Animated, {
 } from 'react-native-reanimated'
 import { AnyTransaction, PendingTransaction } from '@helium/http'
 import { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
-import Box from '../../../components/Box'
-import BarChart from '../../../components/BarChart'
-import BalanceCard from './BalanceCard/BalanceCard'
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { LayoutChangeEvent } from 'react-native'
 import ActivityCard from './ActivityCard/ActivityCard'
 
-import {
-  withWalletLayout,
-  WalletAnimationPoints,
-  WalletLayout,
-} from './walletLayout'
+import { withWalletLayout, WalletLayout } from './walletLayout'
 import { ActivityViewState, FilterType } from './walletTypes'
+import WalletBackground from './WalletBackground'
+
+import { wh } from '../../../utils/layout'
+import WalletHeaderCondensed from './WalletHeaderCondensed'
 
 type Props = {
   layout: WalletLayout
-  animationPoints: WalletAnimationPoints
   showSkeleton: boolean
   activityViewState: ActivityViewState
   txns: AnyTransaction[]
   pendingTxns: PendingTransaction[]
   filter: FilterType
   setActivityCardIndex: (index: number) => void
+  handleScanPressed: () => void
   onReceivePress: () => void
   onSendPress: () => void
   activityCardRef: React.RefObject<BottomSheetMethods>
@@ -35,19 +35,25 @@ type Props = {
 
 const WalletView = ({
   layout,
-  animationPoints,
   showSkeleton,
   activityViewState,
   txns,
   pendingTxns,
   filter,
   setActivityCardIndex,
+  handleScanPressed,
   onReceivePress,
   onSendPress,
   activityCardRef,
 }: Props) => {
   const animatedCardIndex = useSharedValue<number>(1)
   const [hasNoResults, setHasNoResults] = useState(false)
+  const [viewHeights, setViewHeights] = useState({
+    header: 242,
+    condensedHeader: 242,
+  })
+  const tabBarHeight = useBottomTabBarHeight()
+  const insets = useSafeAreaInsets()
 
   useEffect(() => {
     const noResults =
@@ -60,13 +66,18 @@ const WalletView = ({
 
   const balanceCardStyles = useAnimatedStyle(
     () => ({
-      flex: 1,
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      opacity: animatedCardIndex.value - 1,
+      top: 0,
+      zIndex: 9999,
       transform: [
         {
           translateY: interpolate(
             animatedCardIndex.value,
             [1, 2],
-            [0, -layout.chartHeight],
+            [0, insets.top],
             Extrapolate.CLAMP,
           ),
         },
@@ -75,19 +86,36 @@ const WalletView = ({
     [animatedCardIndex, layout.chartHeight],
   )
 
+  const handleLayout = useCallback(
+    (key: 'condensedHeader' | 'header') => (event: LayoutChangeEvent) => {
+      setViewHeights({
+        ...viewHeights,
+        [key]: event?.nativeEvent.layout.height,
+      })
+    },
+    [viewHeights],
+  )
+
+  const snapPoints = useMemo(() => {
+    const collapsedHeight = 24
+    const midHeight = wh - viewHeights.header - tabBarHeight - insets.top
+    const expandedHeight = wh - 46 - tabBarHeight - insets.top
+
+    return [collapsedHeight, midHeight, expandedHeight]
+  }, [insets.top, tabBarHeight, viewHeights.header])
+
   if (activityViewState === 'no_activity') return null
   return (
     <>
-      <Box paddingHorizontal="l">
-        <BarChart height={layout.chartHeight} />
-      </Box>
       <Animated.View style={balanceCardStyles}>
-        <BalanceCard
-          layout={layout}
-          onReceivePress={onReceivePress}
-          onSendPress={onSendPress}
-        />
+        <WalletHeaderCondensed onLayout={handleLayout('condensedHeader')} />
       </Animated.View>
+      <WalletBackground
+        handleScanPressed={handleScanPressed}
+        handleHeaderLayout={handleLayout('header')}
+        onReceivePress={onReceivePress}
+        onSendPress={onSendPress}
+      />
 
       <ActivityCard
         showSkeleton={showSkeleton}
@@ -96,7 +124,7 @@ const WalletView = ({
         pendingTxns={pendingTxns}
         hasNoResults={hasNoResults}
         ref={activityCardRef}
-        animationPoints={animationPoints}
+        snapPoints={snapPoints}
         animatedIndex={animatedCardIndex}
         onChange={setActivityCardIndex}
       />
